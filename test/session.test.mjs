@@ -4,7 +4,7 @@ import { Session, masteryReport } from '../src/session.js';
 
 // a fake scorer: "good" answers master and advance; anything else stays developing
 function fakeScorer({ criteria, eloIndex, answer }) {
-  const mastered = /good|correct|smooth|follow-through/i.test(answer);
+  const mastered = /good|correct|complete|thorough/i.test(answer);
   const nextIndex = mastered ? eloIndex + 1 : eloIndex;
   const complete = mastered && nextIndex >= criteria.length;
   const score = Math.round((nextIndex / criteria.length) * 100);
@@ -23,11 +23,11 @@ test('Session progresses criterion by criterion to completion', async () => {
   assert.equal(s.eloIndex, 0);         // did not advance
   assert.equal(s.complete, false);
 
-  r = await s.answer('a good, smooth answer');
+  r = await s.answer('a good, thorough answer');
   assert.equal(r.verdict, 'mastered');
   assert.equal(s.eloIndex, 1);         // advanced to criterion B
 
-  r = await s.answer('another good answer with follow-through');
+  r = await s.answer('another good, complete answer');
   assert.equal(s.complete, true);      // both criteria mastered
   assert.equal(s.score, 100);
 });

@@ -16,25 +16,25 @@ against the model's opinions.
 ```js
 import { deriveRubric, firstQuestion, scoreTurn } from 'whetstone';
 
-const source = 'Trigger control is a smooth, consistent rearward squeeze… Follow-through is continuing the fundamentals after the shot…';
+const source = 'Photosynthesis is how plants turn light energy into chemical energy. Chlorophyll absorbs sunlight, which splits water and releases oxygen; the plant then combines carbon dioxide with the captured energy to build glucose…';
 
-const { criteria } = await deriveRubric('Explain trigger control and follow-through.', source);
-// → criteria: ['Trigger Control Mechanics', 'Follow-Through and Sear Reset']
+const { criteria } = await deriveRubric('Explain how photosynthesis works.', source);
+// → criteria: ['Light Capture', 'Glucose Synthesis']
 
 const { question } = await firstQuestion(criteria, source);
-// → "How does the trigger squeeze relate to proper follow-through?"
+// → "What does chlorophyll do when sunlight reaches a leaf?"
 
-await scoreTurn({ criteria, eloIndex: 0, question, answer: 'You squeeze the trigger.', source });
+await scoreTurn({ criteria, eloIndex: 0, question, answer: 'Plants use the sun.', source });
 // → { verdict: 'developing', score: 0,
-//     feedback: 'You named the basic action but missed the smooth rearward motion and…',
-//     nextQuestion: 'How specifically should you apply pressure, and where does the finger sit?' }
+//     feedback: 'You have the general idea, but you did not say what captures the light or…',
+//     nextQuestion: 'Which molecule absorbs the sunlight, and what happens to water as a result?' }
 ```
 
 A strong answer advances:
 
 ```js
 // → { verdict: 'mastered', score: 50, nextEloIndex: 1,
-//     nextQuestion: 'How does holding pressure through recoil relate to the sear reset?' }
+//     nextQuestion: 'Once the energy is captured, how does the plant build glucose?' }
 ```
 
 …until all criteria are mastered, at which point `complete: true` and the final `score` is ready to
@@ -56,15 +56,15 @@ Don't want to juggle state? `Session` holds the rubric, transcript, and progress
 ```js
 import { Session } from 'whetstone';
 
-const s = new Session({ objectives: 'Explain trigger control and follow-through.', source });
+const s = new Session({ objectives: 'Explain how photosynthesis works.', source });
 console.log(await s.start());        // → opening question
-await s.answer('You squeeze the trigger.');   // → { verdict: 'developing', feedback, nextQuestion }
-await s.answer('A smooth rearward squeeze while maintaining aim, then follow-through until the sear resets.');
+await s.answer('Plants use the sun.');   // → { verdict: 'developing', feedback, nextQuestion }
+await s.answer('Chlorophyll absorbs sunlight and splits water, releasing oxygen; the captured energy combines carbon dioxide into glucose.');
 // … until s.complete === true
 
 s.report();
 // → { complete: true, score: 100,
-//     criteria: [{ competency: 'Trigger Control Mechanics', verdict: 'mastered' }, …],
+//     criteria: [{ competency: 'Light Capture', verdict: 'mastered' }, …],
 //     exchanges: 6 }
 ```
 
