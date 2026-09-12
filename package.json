@@ -19,5 +19,19 @@
   ],
   "scripts": {
     "test": "node --test"
-  }
+  },
+  "author": "jeranaias",
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeranaias/whetstone.git"
+  },
+  "homepage": "https://github.com/jeranaias/whetstone#readme",
+  "bugs": "https://github.com/jeranaias/whetstone/issues",
+  "files": [
+    "src",
+    "example"
+  ]
 }

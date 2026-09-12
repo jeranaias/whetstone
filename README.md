@@ -1,5 +1,7 @@
 # 🪨 Whetstone
 
+[![CI](https://github.com/jeranaias/whetstone/actions/workflows/ci.yml/badge.svg)](https://github.com/jeranaias/whetstone/actions/workflows/ci.yml) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
 **A conversational tutor that sharpens a learner to mastery — grounded in the lesson.**
 
 A multiple-choice quiz tells you whether someone guessed right. It doesn't tell you whether they
