@@ -1,0 +1,10 @@
+{
+  "name": "whetstone",
+  "version": "0.1.0",
+  "description": "A conversational tutor that assesses a learner to mastery against a rubric, grounded in the lesson.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "src/whetstone.js",
+  "exports": { ".": "./src/whetstone.js" },
+  "keywords": ["mastery", "assessment", "tutor", "adaptive-learning", "rubric", "grounded", "llm"]
+}
