@@ -63,13 +63,21 @@ await s.answer('Chlorophyll absorbs sunlight and splits water, releasing oxygen;
 // … until s.complete === true
 
 s.report();
-// → { complete: true, score: 100,
+// → { complete: true, stalled: false, score: 100,
 //     criteria: [{ competency: 'Light Capture', verdict: 'mastered' }, …],
 //     exchanges: 6 }
 ```
 
-The scoring function is injectable (`new Session({ scorer })`), so the whole progression is testable
-without a model — see the test suite.
+A `Session` always terminates. A learner who never masters a criterion is capped by
+`maxAttemptsPerCriterion` (default 6) — and optionally by a whole-session `maxTurns` — after which the
+session ends with `complete: true`, `stalled: true`, and the partial `score` it had reached. The
+retained transcript is windowed to `maxTranscript` (default 100) entries, while `report().exchanges`
+still reports the true running total.
+
+Every model touchpoint is injectable — `new Session({ scorer, deriveRubric, firstQuestion })` — so the
+whole progression, including `start()`, runs **without a model**. That is exactly how the test suite
+exercises it: deterministic stand-ins drive rubric derivation, the opening question, and scoring, with
+no network calls. See `test/`.
 
 ## Bring your own model
 

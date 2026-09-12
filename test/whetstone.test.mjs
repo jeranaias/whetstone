@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computeScore, deriveRubric, scoreTurn, LEVELS } from '../src/whetstone.js';
+import { computeScore, deriveRubric, firstQuestion, scoreTurn, LEVELS } from '../src/whetstone.js';
 import { masteryReport } from '../src/session.js';
 
 test('computeScore gives full credit per mastered criterion', () => {
@@ -25,6 +25,31 @@ test('computeScore is defensive about bad input', () => {
   assert.equal(computeScore({ criteriaCount: -1, eloIndex: 0, verdict: 'mastered' }), 0);
   // unknown verdict counts as no partial credit, not a crash
   assert.equal(computeScore({ criteriaCount: 2, eloIndex: 0, verdict: 'nonsense' }), 0);
+});
+
+test('computeScore clamps out-of-range input to its documented [0,100] range', () => {
+  // eloIndex at/past the last criterion must not push the score over 100
+  assert.equal(computeScore({ criteriaCount: 2, eloIndex: 2, verdict: 'mastered' }), 100);
+  assert.equal(computeScore({ criteriaCount: 2, eloIndex: 5, verdict: 'mastered' }), 100);
+  // a negative eloIndex must not push the score below 0
+  assert.equal(computeScore({ criteriaCount: 3, eloIndex: -4, verdict: 'developing' }), 0);
+  // partial credit still applies after the index is clamped up to 0
+  assert.equal(computeScore({ criteriaCount: 3, eloIndex: -4, verdict: 'competent' }), 11);
+});
+
+test('firstQuestion flags the canned fallback and propagates the reason when the model gives nothing', async () => {
+  const prevA = process.env.WHETSTONE_API_KEY, prevB = process.env.OPENROUTER_API_KEY;
+  delete process.env.WHETSTONE_API_KEY; delete process.env.OPENROUTER_API_KEY; // force ask() to error out
+  try {
+    const q = await firstQuestion([{ elo: 'Light Capture' }], 'lesson');
+    assert.equal(q.eloIndex, 0);
+    assert.equal(q.fallback, true);          // fallback is flagged, not silently masked
+    assert.ok(q.error);                      // underlying reason is propagated
+    assert.match(q.question, /Light Capture/); // still non-empty so the flow can continue
+  } finally {
+    if (prevA !== undefined) process.env.WHETSTONE_API_KEY = prevA;
+    if (prevB !== undefined) process.env.OPENROUTER_API_KEY = prevB;
+  }
 });
 
 test('LEVELS is the ordered mastery scale', () => {
@@ -69,5 +94,5 @@ test('masteryReport labels assessed, implied, and pending competencies', () => {
 
 test('masteryReport tolerates a bare/empty session', () => {
   const rep = masteryReport({});
-  assert.deepEqual(rep, { complete: false, score: 0, criteria: [], exchanges: 0 });
+  assert.deepEqual(rep, { complete: false, stalled: false, score: 0, criteria: [], exchanges: 0 });
 });

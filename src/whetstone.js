@@ -54,9 +54,11 @@ async function ask(system, user, tries = 4, timeoutMs = 60000) {
 export function computeScore({ criteriaCount, eloIndex, verdict }) {
   if (!Number.isFinite(criteriaCount) || criteriaCount <= 0) return 0;
   const mastered = verdict === 'mastered';
-  const nextIndex = mastered ? eloIndex + 1 : eloIndex;
+  const rawNext = mastered ? (Number.isFinite(eloIndex) ? eloIndex : 0) + 1 : (Number.isFinite(eloIndex) ? eloIndex : 0);
+  const nextIndex = Math.min(Math.max(0, rawNext), criteriaCount); // clamp advancement to the rubric size
   const partial = mastered ? 0 : Math.max(0, LEVELS.indexOf(verdict)) / LEVELS.length;
-  return Math.round(((nextIndex + partial) / criteriaCount) * 100);
+  const pct = Math.round(((nextIndex + partial) / criteriaCount) * 100);
+  return Math.min(100, Math.max(0, pct)); // documented range is [0, 100]
 }
 
 /**
@@ -79,7 +81,9 @@ export async function deriveRubric(objectives, source) {
  * Ask the opening probing question for the first criterion of a rubric.
  * @param {Array<{elo: string}>} criteria - The rubric criteria (from `deriveRubric`).
  * @param {string} source - The lesson content, used to ground the question.
- * @returns {Promise<{question: string, eloIndex: number}>}
+ * @returns {Promise<{question: string, eloIndex: number, fallback?: boolean, error?: string}>}
+ *   `fallback:true` (with the underlying `error`) marks a canned question used because the model
+ *   did not return one; the question is always non-empty so the flow can continue.
  */
 export async function firstQuestion(criteria, source) {
   if (!Array.isArray(criteria) || criteria.length === 0) throw new TypeError('criteria must be a non-empty array');
@@ -87,7 +91,8 @@ export async function firstQuestion(criteria, source) {
   const r = await ask(
     `You are a rigorous but supportive tutor beginning a mastery check. Ask ONE open question that makes the learner explain the competency in their own words, grounded in the lesson. Output JSON only: {"question":"..."}`,
     `Lesson:\n"""${(source || '').slice(0, 3000)}"""\nCompetency: ${elo}\nAsk the opening question.`);
-  return { question: r.question || `In your own words, explain: ${elo}`, eloIndex: 0 };
+  if (typeof r.question === 'string' && r.question.trim() !== '') return { question: r.question, eloIndex: 0 };
+  return { question: `In your own words, explain: ${elo}`, eloIndex: 0, fallback: true, error: r.error || 'no question' };
 }
 
 /**
@@ -117,11 +122,16 @@ export async function scoreTurn({ criteria, eloIndex, question, answer, source, 
   const mastered = verdict === 'mastered';
   const nextIndex = mastered ? idx + 1 : idx;
   const complete = mastered && nextIndex >= criteria.length;
-  let nextQuestion = r.followup || '';
+  let nextQuestion = complete ? '' : (r.followup || ''); // complete → no question, ever
   let nextEloIndex = idx;
   if (mastered && !complete) {
     const nq = await firstQuestion(criteria.slice(nextIndex), source);
     nextQuestion = nq.question; nextEloIndex = nextIndex;
+  }
+  // A non-mastered turn with an empty model follow-up would be a silent dead-end: re-probe the
+  // current criterion so nextQuestion is never empty unless the session is complete.
+  if (!complete && (typeof nextQuestion !== 'string' || nextQuestion.trim() === '')) {
+    nextQuestion = (typeof question === 'string' && question.trim() !== '') ? question : `In your own words, explain: ${c.elo}`;
   }
   const score = computeScore({ criteriaCount: criteria.length, eloIndex: idx, verdict });
   return { verdict, feedback: r.feedback || '', mastered, complete, nextQuestion, nextEloIndex, score };
