@@ -47,6 +47,28 @@ record.
 Whetstone is stateless — you hold the transcript and pass it back, so it drops cleanly into a chat UI,
 a CLI, or a batch grader.
 
+## Or just run a session
+
+Don't want to juggle state? `Session` holds the rubric, transcript, and progress for you — three calls:
+
+```js
+import { Session } from 'whetstone';
+
+const s = new Session({ objectives: 'Explain trigger control and follow-through.', source });
+console.log(await s.start());        // → opening question
+await s.answer('You squeeze the trigger.');   // → { verdict: 'developing', feedback, nextQuestion }
+await s.answer('A smooth rearward squeeze while maintaining aim, then follow-through until the sear resets.');
+// … until s.complete === true
+
+s.report();
+// → { complete: true, score: 100,
+//     criteria: [{ competency: 'Trigger Control Mechanics', verdict: 'mastered' }, …],
+//     exchanges: 6 }
+```
+
+The scoring function is injectable (`new Session({ scorer })`), so the whole progression is testable
+without a model — see the test suite.
+
 ## Bring your own model
 
 | Variable | Default |
